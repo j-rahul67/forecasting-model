@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -:*)",
+      "Bash(pip install:*)",
+      "Bash(python3 -c \"import nbformat; print\\(''ok'', nbformat.__version__\\)\")",
+      "Bash(python3 -m pip install nbformat -q)",
+      "Bash(python3 -c \"import nbformat; print\\(''''ok'''', nbformat.__version__\\)\")",
+      "Bash(python3 generate_notebook.py)",
+      "Bash(python3 -m jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 qsr_forecast.ipynb --output qsr_forecast_executed.ipynb)",
+      "Bash(python3 -m pip install jupyter nbconvert -q)",
+      "Bash(python3 -m nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 qsr_forecast.ipynb --output qsr_forecast_executed.ipynb)",
+      "Bash(python3:*)",
+      "Bash(python -c \":*)",
+      "Bash(ls -la \"c:/Users/rahul/OneDrive/Desktop/New folder/forecasting-model/\"*.ipynb)",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)",
+      "Bash(tasklist /V /FI \"PID eq 34872\")",
+      "Bash(powershell -Command \"Get-Process -Id 34872 | Select-Object Id, ProcessName, StartTime, CPU, WorkingSet64\")",
+      "Bash(powershell -Command \"Get-Date\")",
+      "Bash(powershell -Command \"Stop-Process -Id 34872 -Force\")",
+      "Bash(powershell -Command \"Get-Process python* | Select-Object Id, ProcessName, StartTime, WorkingSet64 | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Stop-Process -Id 19816 -Force; Stop-Process -Id 496 -Force\")"
+    ]
+  }
+}
