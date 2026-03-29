@@ -185,35 +185,68 @@ For each of the 15 restaurants:
 | V1 (standard LightGBM) | 12.62% | 25.34% | 74.66% | Lag features broke in test period |
 | V2 (domain-layered) | 13.13% | 13.77% | 86.23% | Structural base + domain layers |
 | V3 (per-restaurant ensemble) | 12.09% | 13.78% | 86.22% | Per-restaurant + 3-model ensemble + Optuna |
+| **V4 (+ cross-signals)** | **12.12%** | **13.72%** | **86.28%** | City/state demand index, component groups, item shares, peer signals |
+
+### V4: Cross-Signal Feature Engineering
+
+V4 added 24 new features derived from cross-entity relationships in the data:
+
+**A. City/State Demand Index (Foot Traffic Proxy)**
+- Restaurants in the same city show r=0.81-0.97 daily demand correlation
+- City-level average demand per month/dow serves as a local foot traffic signal
+- Restaurant's share of city demand captures relative store performance
+
+**B. Category Demand Index**
+- Items within the same category correlate at r=0.87-0.93 (e.g., all burgers move together)
+- Chain-wide category demand index captures shared demand signals
+- Item's share within its category at each restaurant
+
+**C. Component Group Features**
+- Items sharing base ingredients (burger patty, chicken, potato) grouped together
+- Combo meals linked to their component items (Combo #1 ↔ Cheeseburger + Fries + Drink, r=0.91)
+- Component group demand index and item's share within its group
+
+**D. Size Variants & Combo Ratios**
+- Regular vs Large size ratios (Fries, Drinks, Nuggets) per restaurant per month
+- Combo-to-individual item demand ratios
+
+**E. Cross-Restaurant Peer Signals**
+- State-level item demand index (what peers sell of the same item)
+- Restaurant vs state average ratio (competitive positioning)
+
+**F. Price Tier Features**
+- Price relative to category average
+- Budget/mid/premium tier classification
 
 ### Key Finding: Noise Floor
 
-V3 improved validation by 1pp (13.13% → 12.09%) but test wMAPE stayed flat at 13.78%. This indicates:
+V4 achieved the best test wMAPE (13.72%), confirming:
 
-1. **We are at or near the noise floor** for tree-based methods on this data (~13.5-14% wMAPE for Q4 2025)
-2. The per-restaurant ensemble + Optuna tuning captured restaurant-specific patterns on validation data but did not generalize further on the test set
-3. The remaining ~14% error is likely **inherent daily demand variability** — random walk-ins, unexpected events, etc.
-4. To push significantly below this would require either fundamentally different approaches (deep learning, external data sources) or leveraging the actual Q4 2025 data for semi-supervised learning
+1. **Cross-signal features provided marginal test improvement** (13.78% → 13.72%) while val stayed flat (12.09% → 12.12%)
+2. **The val-to-test gap shrank** from 1.69pp (V3) to 1.60pp (V4), indicating less overfitting
+3. **We are at or near the noise floor** for tree-based methods on this data (~13.5-14%)
+4. The remaining ~14% error is **inherent daily demand variability** — random walk-ins, unexpected events, etc.
+5. Pure domain-math approach (no ML) was also tested and achieved 17.69% val wMAPE — confirming ML models add significant value over statistical methods
 
-### Per-Restaurant Val wMAPE
+### V4 Per-Restaurant Val wMAPE (Databricks Run)
 
 | Restaurant | Val wMAPE | Best Ensemble Weights (LGB/XGB/CB) |
 |------------|-----------|-------------------------------------|
-| R01 | 11.78% | 0.65 / 0.10 / 0.25 |
-| R02 | 11.83% | 0.65 / 0.10 / 0.25 |
-| R03 | 11.75% | 0.65 / 0.10 / 0.25 |
-| R04 | 13.33% | 0.10 / 0.70 / 0.20 |
-| R05 | 12.26% | 0.10 / 0.70 / 0.20 |
-| R06 | 11.85% | 0.10 / 0.70 / 0.20 |
-| R07 | 11.89% | 0.10 / 0.70 / 0.20 |
-| R08 | 11.85% | 0.65 / 0.10 / 0.25 |
-| R09 | 11.54% | 0.10 / 0.70 / 0.20 |
-| R10 | 11.98% | 0.65 / 0.10 / 0.25 |
-| R11 | 12.78% | 0.10 / 0.70 / 0.20 |
-| R12 | 12.33% | 0.10 / 0.70 / 0.20 |
-| R13 | 12.60% | 0.65 / 0.10 / 0.25 |
-| R14 | 11.78% | 0.10 / 0.70 / 0.20 |
-| R15 | 12.36% | 0.65 / 0.10 / 0.25 |
+| R01 | 12.36% | 0.10 / 0.70 / 0.20 |
+| R02 | 11.67% | 0.65 / 0.10 / 0.25 |
+| R03 | 11.96% | 0.10 / 0.70 / 0.20 |
+| R04 | 13.06% | 0.65 / 0.10 / 0.25 |
+| R05 | 12.10% | 0.10 / 0.70 / 0.20 |
+| R06 | 11.98% | 0.10 / 0.70 / 0.20 |
+| R07 | 11.91% | 0.10 / 0.70 / 0.20 |
+| R08 | 11.87% | 0.10 / 0.70 / 0.20 |
+| R09 | 11.38% | 0.10 / 0.70 / 0.20 |
+| R10 | 12.02% | 0.10 / 0.70 / 0.20 |
+| R11 | 12.95% | 0.65 / 0.10 / 0.25 |
+| R12 | 12.47% | 0.10 / 0.70 / 0.20 |
+| R13 | 12.63% | 0.65 / 0.10 / 0.25 |
+| R14 | 11.68% | 0.10 / 0.70 / 0.20 |
+| R15 | 12.13% | 0.65 / 0.10 / 0.25 |
 
 ---
 
@@ -249,8 +282,9 @@ matplotlib>=3.7.0
 seaborn>=0.12.0
 ```
 
-### Feature Count: 70
+### Feature Count: 94 (V3: 70 + V4: 24 new)
 
+**V3 Base Features (70):**
 - Entity identifiers: 2 (menu_item_enc, category_enc)
 - Calendar: 7 (month, dow, is_weekend, day_of_year, week_of_year, day_of_month, dow_x_month)
 - External signals: 3 (is_holiday, is_special_event, is_promotion)
@@ -268,6 +302,15 @@ seaborn>=0.12.0
 - Trend: 4 (yoy_growth, q4_cmdow, q4_trend_ratio, struct_rimdow_trended)
 - Advanced: 10 (target encodings, payday, month position, promo cannibalization, item CV)
 - Price: 1
+
+**V4 Cross-Signal Features (24 new):**
+- Geography: 7 (city/state encoding, city/state demand index, rest_city_share, competition intensity)
+- Category demand: 3 (chain-wide category index, item's category share, category's restaurant share)
+- Component groups: 3 (group encoding, group demand index, item's component share)
+- Size variant ratios: 3 (Fries reg/lg, Drink reg/lg, Nuggets 6/12pc)
+- Combo ratios: 4 (Combo #1-4 to individual item ratios)
+- Cross-restaurant: 2 (state item demand index, restaurant vs state ratio)
+- Price tier: 2 (price vs category avg, price tier)
 
 ### Reproducibility
 
